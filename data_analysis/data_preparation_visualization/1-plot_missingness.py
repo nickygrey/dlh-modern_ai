@@ -21,9 +21,5 @@ def plot_missingness(df):
     # Explicitly map y-ticks to column names
     plt.yticks(range(len(df.columns)), df.columns)
 
-    # Clean viewport limits
-    plt.xlim(-1, len(df))
-    plt.ylim(-0.5, len(df.columns) - 0.5)
-
     plt.tight_layout()
     plt.show()
