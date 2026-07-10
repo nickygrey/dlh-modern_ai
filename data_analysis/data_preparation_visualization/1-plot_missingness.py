@@ -21,5 +21,8 @@ def plot_missingness(df):
     # Explicitly map y-ticks to column names
     plt.yticks(range(len(df.columns)), df.columns)
 
+    # Set the mandatory figure title
+    plt.title("Missingness Plot")
+
     plt.tight_layout()
     plt.show()
