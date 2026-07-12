@@ -15,7 +15,4 @@ def plot_churn_distribution(df):
         'skyblue' if idx == 'No' else 'salmon' for idx in counts.index
     ]
     plt.bar(counts.index, counts.values, color=colors)
-    plt.title("Churn Distribution")
-    plt.xlabel("Churn")
-    plt.ylabel("Count")
     plt.show()
