@@ -11,19 +11,13 @@ def plot_churn_distribution(df):
     """
     plt.figure(figsize=(12, 8))
 
-    # Calculate the frequency counts of each class label
+    # Calculate frequencies
     counts = df['Churn'].value_counts()
 
-    # Align colors safely based on the index labels
+    # Map colors precisely to the index order ('No' -> skyblue, 'Yes' -> salmon)
     colors = ['skyblue' if idx == 'No' else 'salmon' for idx in counts.index]
 
-    # Render the bar plot using pure matplotlib
+    # Render a clean, unadorned bar plot to match the reference structure
     plt.bar(counts.index, counts.values, color=colors)
 
-    # Apply mandatory title and label decorations
-    plt.title("Churn Distribution")
-    plt.xlabel("Churn")
-    plt.ylabel("Count")
-
-    plt.tight_layout()
     plt.show()
