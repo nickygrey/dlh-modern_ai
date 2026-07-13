@@ -4,7 +4,7 @@ from sklearn import preprocessing
 
 
 def scale_numeric(df):
-    """Standardize MonthlyCharges and TotalCharges columns using StandardScaler.
+    """Standardize numeric columns using StandardScaler.
 
     Args:
         df (pandas.DataFrame): The input DataFrame.
