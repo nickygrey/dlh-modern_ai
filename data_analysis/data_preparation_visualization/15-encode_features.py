@@ -33,9 +33,8 @@ def encode_features(df):
             df_enc[[col]].astype(str)
         ).astype('int64')
 
-    # 3. Encode TenureGroup using OrdinalEncoder (alphabetical order)
-    tenure_categories = ['0-12', '13-24', '25-48', '49-60', '60+']
-    tenure_oe = preprocessing.OrdinalEncoder(categories=[tenure_categories])
+    # 3. Encode TenureGroup using parameter-free OrdinalEncoder
+    tenure_oe = preprocessing.OrdinalEncoder()
     df_enc['TenureGroup'] = tenure_oe.fit_transform(
         df_enc[['TenureGroup']].astype(str)
     ).astype('int64')
