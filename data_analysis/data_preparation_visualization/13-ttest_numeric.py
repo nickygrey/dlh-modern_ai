@@ -4,7 +4,7 @@ from scipy import stats
 
 
 def ttest_numeric(df):
-    """Compare numeric feature distributions by Churn status using Welch's t-test.
+    """Compare numeric feature distributions by Churn status.
 
     Args:
         df (pandas.DataFrame): Input DataFrame containing a 'Churn' column.
