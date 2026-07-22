@@ -19,4 +19,4 @@ def draw(clf, feature_names, class_names):
         feature_names=feature_names,
         class_names=list(class_names)
     )
-    print(rules, end="")
+    print(rules)
