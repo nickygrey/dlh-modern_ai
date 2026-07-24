@@ -9,7 +9,7 @@ def scroll_and_scrape(url, scroll_pause=2.0):
 
     Args:
         url (str): Target infinite-scroll page URL.
-        scroll_pause (float): Delay in seconds between scrolls.
+        scroll_pause (float): Maximum delay in seconds to wait per scroll.
 
     Returns:
         list[dict]: List of unique product dictionaries.
@@ -25,7 +25,7 @@ def scroll_and_scrape(url, scroll_pause=2.0):
 
     try:
         driver.get(url)
-        time.sleep(scroll_pause)
+        time.sleep(1)
 
         last_height = driver.execute_script(
             "return document.body.scrollHeight"
@@ -35,19 +35,28 @@ def scroll_and_scrape(url, scroll_pause=2.0):
             driver.execute_script(
                 "window.scrollTo(0, document.body.scrollHeight);"
             )
-            time.sleep(scroll_pause)
 
-            new_height = driver.execute_script(
-                "return document.body.scrollHeight"
-            )
-            if new_height == last_height:
+            start = time.time()
+            height_changed = False
+            while time.time() - start < scroll_pause:
+                time.sleep(0.1)
+                new_height = driver.execute_script(
+                    "return document.body.scrollHeight"
+                )
+                if new_height > last_height:
+                    last_height = new_height
+                    height_changed = True
+                    break
+
+            if not height_changed:
                 break
-            last_height = new_height
 
         cards = driver.find_elements("css selector", "div.thumbnail")
         for card in cards:
             title_elem = card.find_element("css selector", "a.title")
-            title = title_elem.get_attribute("title") or title_elem.text
+            title = title_elem.get_attribute("title")
+            if not title:
+                title = title_elem.text
 
             price_elem = card.find_element("css selector", "h4.price")
             price = price_elem.text
@@ -66,15 +75,32 @@ def scroll_and_scrape(url, scroll_pause=2.0):
                 )
                 if not stars:
                     stars = card.find_elements(
+                        "css selector", ".ratings span.ws-icon-star"
+                    )
+                if not stars:
+                    stars = card.find_elements(
                         "css selector", ".ratings .ws-icon-star"
                     )
                 if not stars:
                     stars = card.find_elements(
                         "css selector", ".ratings .glyphicon-star"
                     )
+                if not stars:
+                    stars = card.find_elements(
+                        "css selector", ".ratings [class*='star']"
+                    )
                 rating = len(stars)
             except Exception:
                 rating = 0
+
+            if rating == 0:
+                try:
+                    r_elem = card.find_element(
+                        "css selector", ".ratings p[data-rating]"
+                    )
+                    rating = int(r_elem.get_attribute("data-rating"))
+                except Exception:
+                    pass
 
             products.append({
                 "title": title,
