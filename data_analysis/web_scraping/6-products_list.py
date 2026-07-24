@@ -2,7 +2,6 @@
 """Module to scrape static product pages using Selenium."""
 import time
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 
 
 def scrape_products(url):
@@ -27,26 +26,26 @@ def scrape_products(url):
         driver.get(url)
         time.sleep(2)
 
-        cards = driver.find_elements(By.CSS_SELECTOR, "div.thumbnail")
+        cards = driver.find_elements("css selector", "div.thumbnail")
         for card in cards:
-            title_elem = card.find_element(By.CSS_SELECTOR, "a.title")
+            title_elem = card.find_element("css selector", "a.title")
             title = title_elem.get_attribute("title") or title_elem.text
 
-            price_elem = card.find_element(By.CSS_SELECTOR, "h4.price")
+            price_elem = card.find_element("css selector", "h4.price")
             price = price_elem.text
 
-            desc_elem = card.find_element(By.CSS_SELECTOR, "p.description")
+            desc_elem = card.find_element("css selector", "p.description")
             description = desc_elem.text
 
             try:
                 rating_elem = card.find_element(
-                    By.CSS_SELECTOR, ".ratings p[data-rating]"
+                    "css selector", ".ratings p[data-rating]"
                 )
                 rating = int(rating_elem.get_attribute("data-rating"))
             except Exception:
                 try:
                     rating_elem = card.find_element(
-                        By.CSS_SELECTOR, "p[data-rating]"
+                        "css selector", "p[data-rating]"
                     )
                     rating = int(rating_elem.get_attribute("data-rating"))
                 except Exception:
