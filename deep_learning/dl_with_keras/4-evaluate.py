@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Module to evaluate a trained Keras model's performance."""
-from tensorflow import keras
 
 
 def evaluate_model(model, X, Y, verbose=0):
