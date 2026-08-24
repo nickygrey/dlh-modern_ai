@@ -1,4 +1,36 @@
 #!/usr/bin/env python3
 """Module to build Keras model with activation-based weight initialization."""
 from tensorflow import keras
-‘•™‰Õ¥±‘}µ½‘•±}¥¹¥Ñ¥…±¥é•É}‰å}…Ñ¥Ù…Ñ¥½¸ (€€€¥¹ÁÕÑ}‘¥´°¡¥‘‘•¹}Õ¹¥ÑÌ°…Ñ¥Ù…Ñ¥½¸(¤è(€€€€ˆˆ‰	Õ¥±„µ½‘•°İ¥Ñ …ÁÁÉ½ÁÉ¥…Ñ”İ•¥¡Ğ¥¹¥Ñ¥…±¥é•ÉÌ™½È…Ñ¥Ù…Ñ¥½¹Ì¸((€€€ÉÌè(€€€€€€€¥¹ÁÕÑ}‘¥´€¡¥¹Ğ¤è9Õµ‰•È½˜¥¹ÁÕĞ™•…ÑÕÉ•Ì¸(€€€€€€€¡¥‘‘•¹}Õ¹¥ÑÌ€¡¥¹Ğ¤è9Õµ‰•È½˜¹•ÕÉ½¹Ì¥¸Ñ¡”¡¥‘‘•¸±…å•È¸(€€€€€€€…Ñ¥Ù…Ñ¥½¸€¡ÍÑÈ¤èÑ¥Ù…Ñ¥½¸™Õ¹Ñ¥½¸€ Í¥µ½¥œ°€Ñ…¹ œ°(€€€€€€€€€€€€€€€€€€€€€€€€€€É•±Ôœ°½È€±•…­å}É•±Ôœ¤¸((€€€I•ÑÕÉ¹Ìè(€€€€€€€­•É…Ì¹5½‘•°è-•É…Ìµ½‘•°İ¥Ñ ½¹™¥ÕÉ•¡¥‘‘•¸…¹½ÕÑÁÕĞ±…å•ÉÌ¸(€€€€ˆˆˆ(€€€¥˜…Ñ¥Ù…Ñ¥½¸¥¸lÍ¥µ½¥œ°€Ñ…¹ tè(€€€€€€€¥¹¥Ñ¥…±¥é•È€ô€±½É½Ñ}Õ¹¥™½É´œ(€€€•±¥˜…Ñ¥Ù…Ñ¥½¸¥¸lÉ•±Ôœ°€±•…­å}É•±Ôtè(€€€€€€€¥¹¥Ñ¥…±¥é•È€ô€¡•}¹½Éµ…°œ(€€€•±Í”è(€€€€€€€¥¹¥Ñ¥…±¥é•È€ô€±½É½Ñ}Õ¹¥™½É´œ((€€€µ½‘•°€ô­•É…Ì¹M•ÅÕ•¹Ñ¥…° ¤(€€€µ½‘•°¹…‘¡­•É…Ì¹±…å•ÉÌ¹%¹ÁÕĞ¡Í¡…Á”ô¡¥¹ÁÕÑ}‘¥´°¤¤¤(€€€µ½‘•°¹…‘¡­•É…Ì¹±…å•ÉÌ¹•¹Í” (€€€€€€€¡¥‘‘•¹}Õ¹¥ÑÌ°(€€€€€€€…Ñ¥Ù…Ñ¥½¸õ…Ñ¥Ù…Ñ¥½¸°(€€€€€€€­•É¹•±}¥¹¥Ñ¥…±¥é•Èõ¥¹¥Ñ¥…±¥é•È(€€€€¤¤(€€€µ½‘•°¹…‘¡­•É…Ì¹±…å•ÉÌ¹•¹Í” ÄÀ°…Ñ¥Ù…Ñ¥½¸ôÍ½™Ñµ…àœ¤¤((€€€É•ÑÕÉ¸µ½‘•°(
+
+
+def build_model_initializer_by_activation(
+    input_dim, hidden_units, activation
+):
+    """Build a model with appropriate weight initializers for activations.
+
+    Args:
+        input_dim (int): Number of input features.
+        hidden_units (int): Number of neurons in the hidden layer.
+        activation (str): Activation function ('sigmoid', 'tanh',
+                          'relu', or 'leaky_relu').
+
+    Returns:
+        keras.Model: Keras model with configured hidden and output layers.
+    """
+    if activation in ['sigmoid', 'tanh']:
+        initializer = 'glorot_uniform'
+    elif activation in ['relu', 'leaky_relu']:
+        initializer = 'he_normal'
+    else:
+        initializer = 'glorot_uniform'
+
+    model = keras.Sequential()
+    model.add(keras.layers.Input(shape=(input_dim,)))
+    model.add(keras.layers.Dense(
+        hidden_units,
+        activation=activation,
+        kernel_initializer=initializer
+    ))
+    model.add(keras.layers.Dense(10, activation='softmax'))
+
+    return model
