@@ -3,7 +3,9 @@
 from tensorflow import keras
 
 
-def build_model_initializer_by_activation(input_dim, hidden_units, activation):
+def build_model_initializer_by_activation(
+    input_dim, hidden_units, activation
+):
     """Build a model with appropriate weight initializers for activations.
 
     Args:
@@ -22,14 +24,13 @@ def build_model_initializer_by_activation(input_dim, hidden_units, activation):
     else:
         initializer = 'glorot_uniform'
 
-    model = keras.Sequential([
-        keras.layers.Dense(
-            hidden_units,
-            activation=activation,
-            kernel_initializer=initializer,
-            input_shape=(input_dim,)
-        ),
-        keras.layers.Dense(10, activation='softmax')
-    ])
+    model = keras.Sequential()
+    model.add(keras.layers.Input(shape=(input_dim,)))
+    model.add(keras.layers.Dense(
+        hidden_units,
+        activation=activation,
+        kernel_initializer=initializer
+    ))
+    model.add(keras.layers.Dense(10, activation='softmax'))
 
     return model
