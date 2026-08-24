@@ -15,22 +15,35 @@ def build_model_initializer_by_activation(
                           'relu', or 'leaky_relu').
 
     Returns:
-        keras.Model: Keras model with configured hidden and output layers.
+        keras.Model: Compiled Keras model with configured layers.
     """
     if activation in ['sigmoid', 'tanh']:
-        initializer = 'glorot_uniform'
-    elif activation in ['relu', 'leaky_relu']:
-        initializer = 'he_normal'
+        initializer = keras.initializers.GlorotUniform()
+        act_func = activation
+    elif activation == 'relu':
+        initializer = keras.initializers.HeNormal()
+        act_func = activation
+    elif activation == 'leaky_relu':
+        initializer = keras.initializers.HeNormal()
+        act_func = keras.layers.LeakyReLU()
     else:
-        initializer = 'glorot_uniform'
+        raise ValueError(
+            "activation must be 'sigmoid', 'tanh', 'relu', or 'leaky_relu'"
+        )
 
-    model = keras.Sequential()
-    model.add(keras.layers.Input(shape=(input_dim,)))
-    model.add(keras.layers.Dense(
-        hidden_units,
-        activation=activation,
+    inputs = keras.Input(shape=(input_dim,))
+    hidden = keras.layers.Dense(
+        units=hidden_units,
+        activation=act_func,
         kernel_initializer=initializer
-    ))
-    model.add(keras.layers.Dense(10, activation='softmax'))
+    )(inputs)
+    outputs = keras.layers.Dense(units=10, activation='softmax')(hidden)
+
+    model = keras.Model(inputs=inputs, outputs=outputs)
+    model.compile(
+        optimizer='adam',
+        loss='categorical_crossentropy',
+        metrics=['accuracy']
+    )
 
     return model
