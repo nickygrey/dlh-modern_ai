@@ -97,12 +97,12 @@ def make_layer(x, blocks, filters, stride=1, name=None):
     """
     x = bottleneck_block(
         x, filters, stride=stride, downsample=True,
-        name=f'{name}_block1'
+        name=f"{name}_block1"
     )
     for i in range(1, blocks):
         x = bottleneck_block(
             x, filters, stride=1, downsample=False,
-            name=f'{name}_block{i + 1}'
+            name=f"{name}_block{i + 1}"
         )
     return x
 
