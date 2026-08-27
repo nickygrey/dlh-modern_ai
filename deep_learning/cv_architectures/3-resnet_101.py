@@ -33,7 +33,7 @@ def bottleneck_block(x, filters, stride=1, downsample=False, name=None):
         filters=filters,
         kernel_size=(1, 1),
         strides=stride,
-        padding='same',
+        padding="same",
         use_bias=False,
         name=conv1_name
     )(x)
@@ -44,7 +44,7 @@ def bottleneck_block(x, filters, stride=1, downsample=False, name=None):
         filters=filters,
         kernel_size=(3, 3),
         strides=1,
-        padding='same',
+        padding="same",
         use_bias=False,
         name=conv2_name
     )(y)
@@ -55,7 +55,7 @@ def bottleneck_block(x, filters, stride=1, downsample=False, name=None):
         filters=filters * 4,
         kernel_size=(1, 1),
         strides=1,
-        padding='same',
+        padding="same",
         use_bias=False,
         name=conv3_name
     )(y)
@@ -66,7 +66,7 @@ def bottleneck_block(x, filters, stride=1, downsample=False, name=None):
             filters=filters * 4,
             kernel_size=(1, 1),
             strides=stride,
-            padding='same',
+            padding="same",
             use_bias=False,
             name=shortcut_conv_name
         )(x)
@@ -125,30 +125,30 @@ def build_resnet101(input_shape=(224, 224, 3), num_classes=1000):
         filters=64,
         kernel_size=(7, 7),
         strides=2,
-        padding='same',
+        padding="same",
         use_bias=False,
-        name='conv1'
+        name="conv1"
     )(inputs)
-    x = keras.layers.BatchNormalization(name='bn1')(x)
-    x = keras.layers.ReLU(name='relu1')(x)
+    x = keras.layers.BatchNormalization(name="bn1")(x)
+    x = keras.layers.ReLU(name="relu1")(x)
     x = keras.layers.MaxPooling2D(
         pool_size=(3, 3),
         strides=2,
-        padding='same',
-        name='maxpool'
+        padding="same",
+        name="maxpool"
     )(x)
 
-    x = make_layer(x, blocks=3, filters=64, stride=1, name='layer1')
-    x = make_layer(x, blocks=4, filters=128, stride=2, name='layer2')
-    x = make_layer(x, blocks=23, filters=256, stride=2, name='layer3')
-    x = make_layer(x, blocks=3, filters=512, stride=2, name='layer4')
+    x = make_layer(x, blocks=3, filters=64, stride=1, name="layer1")
+    x = make_layer(x, blocks=4, filters=128, stride=2, name="layer2")
+    x = make_layer(x, blocks=23, filters=256, stride=2, name="layer3")
+    x = make_layer(x, blocks=3, filters=512, stride=2, name="layer4")
 
-    x = keras.layers.GlobalAveragePooling2D(name='avgpool')(x)
+    x = keras.layers.GlobalAveragePooling2D(name="avgpool")(x)
     outputs = keras.layers.Dense(
         units=num_classes,
-        activation='softmax',
-        name='fc'
+        activation="softmax",
+        name="fc"
     )(x)
 
-    model = keras.Model(inputs=inputs, outputs=outputs, name='resnet101')
+    model = keras.Model(inputs=inputs, outputs=outputs, name="resnet101")
     return model
