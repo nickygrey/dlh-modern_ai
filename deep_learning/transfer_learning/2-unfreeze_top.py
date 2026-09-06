@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """Module to unfreeze top layers of a base model."""
-from tensorflow import keras
 
 
 def unfreeze_top_layers(model, n_layers):
-    """Unfreeze the last n_layers of base model in transfer learning pipeline.
+    """Unfreeze the last n_layers of base model in transfer learning.
 
     Args:
-        model (keras.Model): Model containing base model or base model itself.
+        model: Model containing base model or base model itself.
         n_layers (int): Number of last layers in base model to unfreeze.
 
     Returns:
