@@ -3,7 +3,7 @@
 
 
 def unfreeze_top_layers(model, n_layers):
-    """Unfreeze the last n_layers of base model in transfer learning pipeline.
+    """Unfreeze the last n_layers of base model in transfer learning.
 
     Args:
         model: Model containing base model or base model itself.
@@ -13,7 +13,7 @@ def unfreeze_top_layers(model, n_layers):
         None
     """
     base_model = None
-    if hasattr(model, "layers"): 
+    if hasattr(model, "layers"):
         if (len(model.layers) > 0 and hasattr(model.layers[0], "layers")
                 and len(model.layers[0].layers) > 0):
             base_model = model.layers[0]
