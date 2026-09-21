@@ -1,281 +1,122 @@
 #!/usr/bin/env python3
-"""Module for tuning YOLO inference parameters."""
-import numpy as np
+"""Inference parameter tuning for YOLOv8 object detection.
+
+Performs grid search over confidence and IoU thresholds to find
+optimal inference parameters for best performance on validation set.
+"""
 from ultralytics import YOLO
 
 
-class InferenceResults(list):
-    """List container that also supports dictionary key lookups."""
-
-    def __init__(self, all_results, best_conf, best_iou, best_metrics):
-        """Initialize with results and best hyperparameters.
-
-        Args:
-            all_results (list): List of evaluation result dictionaries.
-            best_conf (float): Best confidence threshold.
-            best_iou (float): Best IoU threshold.
-            best_metrics (dict): Metrics for optimal settings.
-        """
-        super().__init__(all_results)
-        self.all_results = all_results
-        self.best_conf = best_conf
-        self.best_iou = best_iou
-        self.best_metrics = best_metrics
-
-    def __getitem__(self, item):
-        """Support dict keys and list indexes.
-
-        Args:
-            item (int or str): Index or metric key.
-
-        Returns:
-            any: Item from list or value corresponding to key.
-        """
-        if isinstance(item, str):
-            mapping = {
-                "best_conf": self.best_conf,
-                "best_iou": self.best_iou,
-                "best_metrics": self.best_metrics,
-                "all_results": self.all_results,
-            }
-            if item in mapping:
-                return mapping[item]
-            raise KeyError(item)
-        return super().__getitem__(item)
-
-    def get(self, key, default=None):
-        """Get value for dict key.
-
-        Args:
-            key (str): Key to look up.
-            default (any, optional): Default value. Defaults to None.
-
-        Returns:
-            any: Found value or default.
-        """
-        try:
-            return self[key]
-        except (KeyError, TypeError):
-            return default
-
-
-def _parse_inputs(arg1, arg2, **kwargs):
-    """Parse model and dataset path from positional and keyword arguments.
+def inference_tuning(data_yaml, model, conf_list=None, iou_list=None,
+                     imgsz=640):
+    """Perform grid search over confidence and IoU thresholds.
 
     Args:
-        arg1: First positional argument.
-        arg2: Second positional argument.
-        **kwargs: Additional keyword arguments.
+        data_yaml (str): Path to dataset YAML file.
+        model (str or YOLO): Path to trained model or YOLO model object.
+        conf_list (list): Confidence thresholds to test.
+        iou_list (list): IoU thresholds for NMS to test.
+        imgsz (int): Image size for validation.
 
     Returns:
-        tuple: (model, data) parsed references.
+        list: Results for each confidence/IoU combination.
     """
-    model = kwargs.get("model")
-    data = (
-        kwargs.get("data_yaml")
-        or kwargs.get("data")
-        or kwargs.get("val_images_path")
-    )
+    if conf_list is None:
+        conf_list = [0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+    if iou_list is None:
+        iou_list = [0.4, 0.45, 0.5, 0.55, 0.6, 0.65]
 
-    if model is None and data is None:
-        if isinstance(arg1, str) and arg1.endswith((".yaml", ".yml")):
-            data = arg1
-            model = arg2
-        elif isinstance(arg2, str) and arg2.endswith((".yaml", ".yml")):
-            data = arg2
-            model = arg1
-        elif hasattr(arg1, "val"): 
-            model = arg1
-            data = arg2
-        else:
-            model = arg1
-            data = arg2
-    elif model is None:
-        model = arg2 if arg1 == data else arg1
-    elif data is None:
-        data = arg2 if arg1 == model else arg1
-
-    return model, data
-
-
-def _run_tuning(model, data, conf_list, iou_list, imgsz=640):
-    """Run grid search validation over confidence and IoU thresholds.
-
-    Args:
-        model: Trained YOLO model or path to weights.
-        data: Path to data configuration or validation images.
-        conf_list (list): Confidence thresholds to evaluate.
-        iou_list (list): IoU thresholds to evaluate.
-        imgsz (int, optional): Image size. Defaults to 640.
-
-    Returns:
-        tuple: (all_results, best_conf, best_iou, best_metrics).
-    """
     if isinstance(model, str):
-        yolo_model = YOLO(model)
-    else:
-        yolo_model = model
+        model = YOLO(model)
 
-    all_results = []
-    best_map50 = -1.0
-    best_conf = None
-    best_iou = None
-    best_metrics = {}
+    results = []
+    total_combinations = len(conf_list) * len(iou_list)
+    current = 0
+
+    print("=" * 70)
+    print("INFERENCE PARAMETER TUNING: Grid Search")
+    print("=" * 70)
+    print(f"Testing {total_combinations} combinations...")
+    print(f"Confidence thresholds: {conf_list}")
+    print(f"IoU thresholds: {iou_list}\n")
 
     for conf in conf_list:
         for iou in iou_list:
-            metrics = yolo_model.val(
-                data=data,
-                conf=conf,
-                iou=iou,
-                imgsz=imgsz,
-                verbose=False,
-                plots=False
+            current += 1
+
+            try:
+                val_results = model.val(
+                    data=data_yaml,
+                    conf=conf,
+                    iou=iou,
+                    imgsz=imgsz,
+                    verbose=False,
+                    plots=False
+                )
+
+                metrics = val_results.results_dict
+
+                map50 = metrics.get("metrics/mAP50(B)", 0)
+                map50_95 = metrics.get("metrics/mAP50-95(B)", 0)
+                precision = metrics.get("metrics/precision(B)", 0)
+                recall = metrics.get("metrics/recall(B)", 0)
+
+                result_dict = {
+                    "conf": conf,
+                    "iou": iou,
+                    "map50": float(map50),
+                    "map50_95": float(map50_95),
+                    "precision": float(precision),
+                    "recall": float(recall)
+                }
+                results.append(result_dict)
+
+                status = (
+                    f"[{current}/{total_combinations}] "
+                    f"conf={conf:.2f}, iou={iou:.2f} → "
+                    f"mAP50={map50:.4f}, mAP50-95={map50_95:.4f}"
+                )
+                print(status)
+
+            except Exception as e:
+                print(f"Error at conf={conf}, iou={iou}: {str(e)}")
+                continue
+
+    print("\n" + "=" * 70)
+    print("RESULTS SUMMARY")
+    print("=" * 70)
+
+    if results:
+        best_result = max(results, key=lambda x: x["map50_95"])
+
+        print("\nBest Configuration:")
+        conf_val = best_result["conf"]
+        iou_val = best_result["iou"]
+        map50_val = best_result["map50"]
+        print(f"   Confidence threshold: {conf_val:.2f}")
+        print(f"   IoU threshold: {iou_val:.2f}")
+        print(f"   mAP50: {map50_val:.4f}")
+        map50_95_val = best_result["map50_95"]
+        prec_val = best_result["precision"]
+        rec_val = best_result["recall"]
+        print(f"   mAP50-95: {map50_95_val:.4f}")
+        print(f"   Precision: {prec_val:.4f}")
+        print(f"   Recall: {rec_val:.4f}")
+
+        print("\nTop 5 Configurations (by mAP50-95):")
+        sorted_results = sorted(
+            results,
+            key=lambda x: x["map50_95"],
+            reverse=True
+        )
+        for i, result in enumerate(sorted_results[:5], 1):
+            print(
+                f"  {i}. conf={result['conf']:.2f}, "
+                f"iou={result['iou']:.2f} → "
+                f"mAP50={result['map50']:.4f}, "
+                f"mAP50-95={result['map50_95']:.4f}"
             )
 
-            map50 = getattr(metrics.box, "map50", None)
-            if map50 is None:
-                map50 = metrics.results_dict.get("metrics/mAP50(B)", 0.0)
-            map50 = np.float64(map50)
+    print("\n" + "=" * 70)
 
-            map50_95 = getattr(metrics.box, "map", None)
-            if map50_95 is None:
-                map50_95 = metrics.results_dict.get(
-                    "metrics/mAP50-95(B)", 0.0
-                )
-            map50_95 = np.float64(map50_95)
-
-            precision = getattr(metrics.box, "mp", None)
-            if precision is None:
-                precision = float(
-                    metrics.results_dict.get("metrics/precision(B)", 0.0)
-                )
-
-            recall = getattr(metrics.box, "mr", None)
-            if recall is None:
-                recall = float(
-                    metrics.results_dict.get("metrics/recall(B)", 0.0)
-                )
-
-            if precision + recall > 0:
-                f1 = 2 * (precision * recall) / (precision + recall)
-            else:
-                f1 = 0.0
-
-            entry = {
-                "conf": conf,
-                "iou": iou,
-                "map50": map50,
-                "map50_95": map50_95
-            }
-            all_results.append(entry)
-
-            if float(map50) > best_map50:
-                best_map50 = float(map50)
-                best_conf = conf
-                best_iou = iou
-                best_metrics = {
-                    "mAP50": map50,
-                    "mAP50-95": map50_95,
-                    "precision": precision,
-                    "recall": recall,
-                    "F1": f1
-                }
-
-    return all_results, best_conf, best_iou, best_metrics
-
-
-def inference_tuning(
-    arg1=None,
-    arg2=None,
-    conf_list=None,
-    iou_list=None,
-    imgsz=640,
-    **kwargs
-):
-    """Tune inference parameters for optimal YOLO performance.
-
-    Args:
-        arg1: First positional argument (data_yaml or model).
-        arg2: Second positional argument (model or data_yaml).
-        conf_list (list, optional): Confidence thresholds to evaluate.
-        iou_list (list, optional): IoU thresholds to evaluate.
-        imgsz (int, optional): Image size for validation. Defaults to 640.
-        **kwargs: Additional keyword arguments.
-
-    Returns:
-        InferenceResults: List of results supporting dict access.
-    """
-    model, data = _parse_inputs(arg1, arg2, **kwargs)
-
-    confs = (
-        conf_list if conf_list is not None
-        else kwargs.get(
-            "conf_thresholds",
-            [0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
-        )
-    )
-    ious = (
-        iou_list if iou_list is not None
-        else kwargs.get(
-            "iou_thresholds",
-            [0.4, 0.45, 0.5, 0.55, 0.6, 0.65]
-        )
-    )
-
-    all_results, best_conf, best_iou, best_metrics = _run_tuning(
-        model=model,
-        data=data,
-        conf_list=confs,
-        iou_list=ious,
-        imgsz=imgsz
-    )
-
-    return InferenceResults(all_results, best_conf, best_iou, best_metrics)
-
-
-def tune_inference(
-    model,
-    val_images_path,
-    conf_thresholds=None,
-    iou_thresholds=None,
-    imgsz=640,
-    **kwargs
-):
-    """Perform inference tuning over confidence and IoU thresholds.
-
-    Args:
-        model: Path to trained weights or YOLO model object.
-        val_images_path (str): Path to validation images or data YAML.
-        conf_thresholds (list, optional): Confidence thresholds to evaluate.
-        iou_thresholds (list, optional): IoU thresholds to evaluate.
-        imgsz (int, optional): Image size for inference. Defaults to 640.
-        **kwargs: Additional arguments.
-
-    Returns:
-        dict: Dictionary containing best_conf, best_iou, best_metrics,
-            and all_results.
-    """
-    confs = (
-        conf_thresholds if conf_thresholds is not None
-        else [0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
-    )
-    ious = (
-        iou_thresholds if iou_thresholds is not None
-        else [0.4, 0.45, 0.5, 0.55, 0.6, 0.65]
-    )
-
-    all_results, best_conf, best_iou, best_metrics = _run_tuning(
-        model=model,
-        data=val_images_path,
-        conf_list=confs,
-        iou_list=ious,
-        imgsz=imgsz
-    )
-
-    return {
-        "best_conf": best_conf,
-        "best_iou": best_iou,
-        "best_metrics": best_metrics,
-        "all_results": all_results
-    }
+    return results
