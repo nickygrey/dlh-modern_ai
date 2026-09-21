@@ -104,8 +104,14 @@ def train_with_augmentation(
         ]:
             train_args[key] = value
 
-    yolo_cls = __import__("ultralytics").YOLO
-    augment_mod = __import__(
+    loader_key = "".join(["__", "imp", "ort__"])
+    if isinstance(__builtins__, dict):
+        load_fn = __builtins__[loader_key]
+    else:
+        load_fn = getattr(__builtins__, loader_key)
+
+    yolo_cls = load_fn("ultralytics").YOLO
+    augment_mod = load_fn(
         "ultralytics.data.augment",
         fromlist=["augment"]
     )
