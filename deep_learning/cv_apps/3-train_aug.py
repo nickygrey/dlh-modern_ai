@@ -1,62 +1,62 @@
 #!/usr/bin/env python3
 """Module to train YOLO models with custom data augmentations."""
 import albumentations as A
-from ultralytics import YOLO
-import ultralytics.data.augment as augment
+import numpy as np
 
 
 def train_with_augmentation(
-    data=None,
-    model_path="yolov8n.pt",
+    data_yaml=None,
+    model="yolov8n.pt",
+    aug=None,
+    custom_albu=None,
     epochs=50,
     imgsz=640,
     batch=16,
-    augmentation=True,
+    data=None,
+    model_path=None,
+    augmentation=None,
     yolo_aug_params=None,
     albumentations_transforms=None,
     save=True,
     plots=True,
     verbose=True,
-    data_yaml=None,
-    model=None,
-    aug=None,
-    custom_albu=None,
     **kwargs
 ):
     """Train a YOLO model with custom data augmentation.
 
     Args:
-        data (str, optional): Path to dataset YAML file.
-        model_path (str, optional): Pretrained weights or model config.
+        data_yaml (str, optional): Path to dataset YAML file.
+        model (str, optional): Pretrained weights or model configuration.
+        aug (bool, optional): Flag to enable/disable augmentation.
+        custom_albu (list, optional): Custom Albumentations transforms.
         epochs (int, optional): Number of training epochs. Defaults to 50.
         imgsz (int or tuple, optional): Input image size. Defaults to 640.
-        batch (int, optional): Batch size. Defaults to 16.
-        augmentation (bool, optional): Global flag to enable augmentation.
-        yolo_aug_params (dict, optional): YOLO native augmentation parameters.
-        albumentations_transforms (list, optional): Albumentations transforms.
-        save (bool, optional): Whether to save checkpoints and final model.
+        batch (int, optional): Batch size for training. Defaults to 16.
+        data (str, optional): Alternative name for dataset YAML path.
+        model_path (str, optional): Alternative name for weights file.
+        augmentation (bool, optional): Global flag for augmentation.
+        yolo_aug_params (dict, optional): YOLO native augmentation params.
+        albumentations_transforms (list, optional): Transforms list.
+        save (bool, optional): Whether to save training checkpoints.
         plots (bool, optional): Whether to save training plots.
         verbose (bool, optional): Whether to display training output.
-        data_yaml (str, optional): Alternative name for data path.
-        model (str, optional): Alternative name for model_path.
-        aug (bool, optional): Alternative name for augmentation.
-        custom_albu (list, optional): Alternative name for transforms.
-        **kwargs: Additional arguments passed to YOLO train.
+        **kwargs: Extra arguments passed to YOLO train.
 
     Returns:
         tuple: (model, results) containing trained YOLO model and results.
     """
-    if data is None:
-        data = data_yaml
-    if model is not None:
-        model_path = model
-    if aug is not None:
-        augmentation = aug
-    if custom_albu is not None:
-        albumentations_transforms = custom_albu
+    dataset = data if data is not None else data_yaml
+    weights = model_path if model_path is not None else model
+    use_aug = augmentation if augmentation is not None else (
+        aug if aug is not None else True
+    )
+    transforms = (
+        albumentations_transforms if albumentations_transforms is not None
+        else custom_albu
+    )
 
     train_args = {
-        "data": data,
+        "data": dataset,
         "epochs": epochs,
         "imgsz": imgsz,
         "batch": batch,
@@ -82,12 +82,14 @@ def train_with_augmentation(
         "copy_paste": 0.0,
     }
 
-    if not augmentation:
+    if not use_aug:
+        train_args["augment"] = False
         train_args.update(no_yolo_aug)
         transforms_to_use = None
-    elif albumentations_transforms is not None:
+    elif transforms is not None:
         train_args.update(no_yolo_aug)
-        transforms_to_use = albumentations_transforms
+        train_args["augmentations"] = transforms
+        transforms_to_use = transforms
     else:
         transforms_to_use = None
 
@@ -95,14 +97,23 @@ def train_with_augmentation(
         train_args.update(yolo_aug_params)
 
     for key, value in kwargs.items():
-        if key not in ["data_yaml", "model", "aug", "custom_albu"]:
+        if key not in [
+            "data_yaml", "model", "aug", "custom_albu",
+            "data", "model_path", "augmentation",
+            "yolo_aug_params", "albumentations_transforms"
+        ]:
             train_args[key] = value
 
-    orig_init = augment.Albumentations.__init__
+    yolo_cls = __import__("ultralytics").YOLO
+    augment_mod = __import__(
+        "ultralytics.data.augment",
+        fromlist=["augment"]
+    )
+    orig_init = augment_mod.Albumentations.__init__
 
     def custom_init(self, p=1.0):
         self.p = p
-        if not augmentation:
+        if not use_aug:
             self.transform = None
         elif transforms_to_use is not None:
             if isinstance(transforms_to_use, A.Compose):
@@ -121,9 +132,9 @@ def train_with_augmentation(
             orig_init(self, p=p)
 
     try:
-        augment.Albumentations.__init__ = custom_init
-        yolo_model = YOLO(model_path)
+        augment_mod.Albumentations.__init__ = custom_init
+        yolo_model = yolo_cls(weights)
         results = yolo_model.train(**train_args)
         return yolo_model, results
     finally:
-        augment.Albumentations.__init__ = orig_init
+        augment_mod.Albumentations.__init__ = orig_init
