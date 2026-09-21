@@ -1,33 +1,32 @@
 #!/usr/bin/env python3
 """Text normalization module for SMS messages."""
-import emoji
 import re
-
+import emoji
 
 _DATASET_PLACEHOLDER_MAP = {
-    "<#>": "<NUM>",
-    "<decimal>": "<NUM>",
-    "<time>": "<TIME>",
-    "<url>": "<URL>",
-    "<email>": "<EMAIL>",
+    '<#>':       '<NUM>',
+    '<decimal>': '<NUM>',
+    '<time>':    '<TIME>',
+    '<url>':     '<URL>',
+    '<email>':   '<EMAIL>',
 }
 
 
 def normalize_unicode_punct(text):
-    """Replace curly quotes, dashes, ellipses with ASCII equivalents."""
+    """Replace curly quotes, dashes, ellipses, etc. with ASCII equivalents."""
     replacements = {
-        r"[‘’‚‛]": "'",
-        r"[“”„‟]": "\"",
+        r"[''‚‛]":    "\x27",
+        r'[""„‟]':    '"\x27,
         r"[‐‑‒–—―−]": "-",
-        r"…": "...",
+        r"…":          "...",
     }
     for pattern, repl in replacements.items():
         text = re.sub(pattern, repl, text)
     return text
 
 
-def clean_text(text, replace_num=True,
-               replace_url=True, emoji_action="replace"):
+def clean_text(text, replace_num=True, replace_url=True,
+               emoji_action="replace", keep_emoji=None, **kwargs):
     """Clean and normalize raw text strings.
 
     Args:
@@ -35,12 +34,21 @@ def clean_text(text, replace_num=True,
         replace_num (bool): Replace detected numbers and phone patterns.
         replace_url (bool): Replace URLs with <URL>.
         emoji_action (str): Action for emojis (replace, remove, or keep).
+        keep_emoji (bool, optional): If True replaces emojis with placeholders,
+            if False removes them.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         str: Cleaned and normalized text, or "" if text is None.
     """
     if text is None:
         return ""
+
+    if keep_emoji is not None:
+        if keep_emoji:
+            emoji_action = "replace"
+        else:
+            emoji_action = "remove"
 
     # 1. lowercase + strip
     text = text.lower().strip()
@@ -58,7 +66,7 @@ def clean_text(text, replace_num=True,
 
     # 5. number replacement (2 passes)
     if replace_num:
-        # Pass 1: phone-like strings
+        # Pass 1: phone-like patterns first to prevent partial truncation
         text = re.sub(r"\+?\d[\d\s\-]{6,}\d", "<NUM>", text)
         # Pass 2: integers, decimals, currency-prefixed amounts
         num_regex = (
