@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Module to train Word2Vec and compute per-message embeddings."""
+"""Module to train Word2Vec and generate message embeddings."""
 import gensim.models
 import numpy as np
 
 
 def word2vec_embeddings(corpus_tokens, vector_size=100, window=5,
                         min_count=2, sg=0, epochs=10, workers=4):
-    """Train Word2Vec model and generate message embeddings.
+    """Train Word2Vec model and generate per-message embeddings.
 
     Args:
         corpus_tokens (list[list[str]]): Corpus represented as a list of
@@ -39,20 +39,13 @@ def word2vec_embeddings(corpus_tokens, vector_size=100, window=5,
         workers=workers
     )
 
-    embeddings = []
-    for message in corpus_tokens:
+    X = np.zeros((len(corpus_tokens), vector_size))
+    for i, message in enumerate(corpus_tokens):
         in_vocab_vectors = [
             model.wv[token] for token in message
             if token in model.wv
         ]
         if in_vocab_vectors:
-            embeddings.append(np.mean(in_vocab_vectors, axis=0))
-        else:
-            embeddings.append(np.zeros(vector_size))
-
-    if embeddings:
-        X = np.array(embeddings)
-    else:
-        X = np.zeros((0, vector_size))
+            X[i] = np.mean(in_vocab_vectors, axis=0)
 
     return X, model
