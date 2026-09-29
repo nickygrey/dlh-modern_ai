@@ -2,15 +2,6 @@
 """TF-IDF feature matrix generation module."""
 import sklearn
 
-try:
-    _TfidfVectorizer = sklearn.feature_extraction.text.TfidfVectorizer
-except AttributeError:
-    _b = __builtins__ if isinstance(__builtins__, dict) else vars(__builtins__)
-    _TfidfVectorizer = _b["".join(["__imp", "ort__"])](
-        "sklearn.feature_extraction.text",
-        fromlist=["TfidfVectorizer"]
-    ).TfidfVectorizer
-
 
 def tf_idf(corpus_tokens, max_features=5000, ngram_range=(1, 2),
            min_df=2, max_df=0.95, norm='l2'):
@@ -35,12 +26,15 @@ def tf_idf(corpus_tokens, max_features=5000, ngram_range=(1, 2),
             X: Sparse TF-IDF feature matrix of shape (n_samples, n_features).
             vectorizer: The fitted TfidfVectorizer object.
     """
-    corpus_text = [
-        " ".join(tokens) if isinstance(tokens, list) else str(tokens)
-        for tokens in corpus_tokens
-    ]
+    corpus_text = [' '.join(tokens) for tokens in corpus_tokens]
 
-    vectorizer = _TfidfVectorizer(
+    try:
+        tfidf_cls = sklearn.feature_extraction.text.TfidfVectorizer
+    except AttributeError:
+        __import__('sklearn.feature_extraction.text')
+        tfidf_cls = sklearn.feature_extraction.text.TfidfVectorizer
+
+    vectorizer = tfidf_cls(
         max_features=max_features,
         ngram_range=ngram_range,
         min_df=min_df,
