@@ -1,33 +1,29 @@
 #!/usr/bin/env python3
-"""Module to train FastText and generate message embeddings."""
+"""Train FastText subword model and compute message representations."""
 import gensim.models
 import numpy as np
 
 
 def fasttext_embeddings(corpus_tokens, vector_size=100, window=5,
                         min_count=1, sg=0, epochs=10, workers=4):
-    """Train FastText model and generate per-message embeddings.
+    """Train FastText model and return per-document embedding vectors.
 
     Args:
-        corpus_tokens (list[list[str]]): Corpus represented as a list of
-            token lists.
-        vector_size (int, optional): Dimensionality of word vectors.
+        corpus_tokens (list[list[str]]): List of token lists for training.
+        vector_size (int, optional): Dimensionality of word embeddings.
             Defaults to 100.
-        window (int, optional): Maximum distance between current and
-            predicted word. Defaults to 5.
-        min_count (int, optional): Minimum frequency count of words.
+        window (int, optional): Context window size. Defaults to 5.
+        min_count (int, optional): Minimum word occurrence count.
             Defaults to 1.
-        sg (int, optional): Training algorithm: 0 for CBOW, 1 for Skip-gram.
-            Defaults to 0.
-        epochs (int, optional): Number of training iterations.
-            Defaults to 10.
-        workers (int, optional): Number of worker threads. Defaults to 4.
+        sg (int, optional): Training architecture: 0 for CBOW, 1 for
+            Skip-gram. Defaults to 0.
+        epochs (int, optional): Training iterations. Defaults to 10.
+        workers (int, optional): Number of thread workers. Defaults to 4.
 
     Returns:
-        tuple: (X, model) where:
-            X (numpy.ndarray): Message embeddings matrix of shape
-                (n_messages, vector_size).
-            model (gensim.models.FastText): Trained FastText model.
+        tuple: (X, model) where X is an np.ndarray of shape (n_messages,
+            vector_size) containing message vectors and model is the
+            trained FastText model instance.
     """
     model = gensim.models.FastText(
         sentences=corpus_tokens,
@@ -39,15 +35,13 @@ def fasttext_embeddings(corpus_tokens, vector_size=100, window=5,
         workers=workers
     )
 
-    X = np.zeros((len(corpus_tokens), vector_size))
-    for i, message in enumerate(corpus_tokens):
-        token_vectors = []
-        for token in message:
-            try:
-                token_vectors.append(model.wv[token])
-            except KeyError:
-                continue
+    embeddings = []
+    for message in corpus_tokens:
+        token_vectors = [model.wv[token] for token in message]
         if token_vectors:
-            X[i] = np.mean(token_vectors, axis=0)
+            embeddings.append(np.mean(token_vectors, axis=0))
+        else:
+            embeddings.append(np.zeros(vector_size))
 
+    X = np.array(embeddings, dtype=np.float64)
     return X, model
